@@ -1,4 +1,4 @@
-import os # <--- เพิ่มบรรทัดนี้บนสุด
+import os
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -6,14 +6,15 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
 
+# --- จุดที่แก้ไข: เหลือไว้แค่ชุดนี้ชุดเดียวพอครับ ---
 # ดึงค่าจาก Environment Variable ที่ตั้งใน Render
-line_bot_api = LineBotApi(os.environ.get('CHANNEL_ACCESS_TOKEN'))
-handler = WebhookHandler(os.environ.get('CHANNEL_SECRET'))
+# (ถ้าไม่มีค่า จะใช้ string ว่างๆ แทน เพื่อกัน Error ตอนรัน Local)
+channel_access_token = os.environ.get('CHANNEL_ACCESS_TOKEN', '')
+channel_secret = os.environ.get('CHANNEL_SECRET', '')
 
-# ... (ส่วน callback เหมือนเดิม) ...
-# ใส่ Channel Access Token และ Channel Secret จาก LINE Developers
-line_bot_api = LineBotApi('YOUR_CHANNEL_ACCESS_TOKEN')
-handler = WebhookHandler('YOUR_CHANNEL_SECRET')
+line_bot_api = LineBotApi(channel_access_token)
+handler = WebhookHandler(channel_secret)
+# -----------------------------------------------
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -50,7 +51,6 @@ def handle_message(event):
         TextSendMessage(text=reply_text)
     )
 
-# ส่วนนี้คือฟังก์ชันที่จะทำงานเมื่อมีข้อความเข้า
 @app.route("/")
 def hello():
     return "Hello World"
