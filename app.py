@@ -263,7 +263,7 @@ def handle_message(event):
 
         repair_type = user_data[user_id].get('repair_type')
         symptom = user_data[user_id].get('symptom')
-        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
         
         flex_msg = create_summary_flex(
             title="บันทึกแจ้งซ่อม",
@@ -309,7 +309,7 @@ def handle_message(event):
 
         org_name = user_data[user_id].get('org_name')
         item_list = user_data[user_id].get('item_list')
-        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="คำสั่งซื้อหน่วยงาน",
@@ -348,7 +348,7 @@ def handle_message(event):
             return
 
         product_name = user_data[user_id].get('product_name')
-        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="สอบถามสินค้า",
@@ -368,7 +368,7 @@ def handle_message(event):
     # --- FLOW 4: CCTV ---
     elif current_state == 'CCTV_SELECT_TYPE':
         cctv_type = msg_text
-        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
         flex_msg = create_summary_flex(
             title="สนใจติดตั้ง CCTV",
             color="#00c853", # สีเขียว
