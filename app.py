@@ -34,14 +34,19 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
         contents=[TextComponent(text=title, weight='bold', color='#ffffff', size='lg')]
     )
 
-    # Hero Image
+    # Hero Image (ปรับขนาดใหม่)
     hero_image = None
     if image_url:
         hero_image = ImageComponent(
             url=image_url,
             size='full',
-            aspect_ratio='1.91:1',
-            aspect_mode='cover'
+            # --- จุดที่แก้ไข ---
+            # ปรับ aspect_ratio ให้กว้างขึ้น เพื่อลดความสูงของกล่อง
+            # ลองใช้ 2:1 (พอดีรูปคุณ) หรือ 2.35:1 (แบบโรงหนัง จะดูเพรียวลงอีก)
+            aspect_ratio='2.35:1', 
+            # aspect_mode='cover' จะตัดส่วนเกินออกให้เต็มกรอบ
+            # aspect_mode='fit' จะย่อรูปให้เห็นครบ แต่จะมีขอบขาว
+            aspect_mode='cover' 
         )
 
     # Body
@@ -89,9 +94,11 @@ def create_location_card():
         hero=ImageComponent(
             url=map_image_url,
             size='full',
-            aspect_ratio='20:13',
+            # --- จุดที่แก้ไข ---
+            # ปรับลดความสูงลงจากเดิม 20:13 (สูงมาก) เป็น 2.35:1 (เตี้ยลง)
+            aspect_ratio='2.35:1', 
             aspect_mode='cover',
-            action=URIAction(uri='https://www.google.com/maps') # ใส่ Link Google Map ของร้านตรงนี้
+            action=URIAction(uri='https://www.google.com/maps') 
         ),
         body=BoxComponent(
             layout='vertical',
@@ -141,6 +148,8 @@ def create_location_card():
     )
     return FlexSendMessage(alt_text="ที่ตั้งร้าน", contents=bubble)
 
+# -----------------------------------------------
+# ส่วน Callback และ Handle Message ใช้ของเดิมได้เลยครับ (ไม่มีการเปลี่ยนแปลง)
 # -----------------------------------------------
 
 @app.route("/callback", methods=['POST'])
