@@ -47,7 +47,7 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
         hero = ImageComponent(
             url=image_url,
             size='full',
-            aspect_ratio='2:1',
+            aspect_ratio='4:3',
             aspect_mode='cover',
             backgroundColor=color
         )
