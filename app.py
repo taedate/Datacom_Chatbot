@@ -50,7 +50,7 @@ def create_location_card():
     """
     
     # รูปแผนที่ (คุณสามารถแคปรูป Map จริงๆ แล้วอัปโหลดได้)
-    map_image_url = "https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
+    map_image_url = "https://github.com/taedate/datacom-image/blob/main/Datacom.jpg?raw=true"
     
     bubble = BubbleContainer(
         direction='ltr',
@@ -59,7 +59,7 @@ def create_location_card():
             size='full',
             aspect_ratio='20:13',
             aspect_mode='cover',
-            action=URIAction(uri='https://goo.gl/maps/x1y2z3') # ลิงก์กดที่รูปแล้วไป Google Map
+            action=URIAction(uri='https://maps.app.goo.gl/NrRpbYwrZxsgQe69A') # ลิงก์กดที่รูปแล้วไป Google Map
         ),
         body=BoxComponent(
             layout='vertical',
