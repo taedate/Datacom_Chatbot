@@ -1,14 +1,14 @@
+
 import os
+from dotenv import load_dotenv 
+
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
 app = Flask(__name__)
-
-# --- จุดที่แก้ไข: เหลือไว้แค่ชุดนี้ชุดเดียวพอครับ ---
-# ดึงค่าจาก Environment Variable ที่ตั้งใน Render
-# (ถ้าไม่มีค่า จะใช้ string ว่างๆ แทน เพื่อกัน Error ตอนรัน Local)
+load_dotenv()
 channel_access_token = os.environ.get('CHANNEL_ACCESS_TOKEN', '')
 channel_secret = os.environ.get('CHANNEL_SECRET', '')
 
@@ -16,18 +16,16 @@ line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
 # -----------------------------------------------
 
-@app.route("/callback", methods=['POST'])
-def callback():
-    # รับ Header จาก LINE
-    signature = request.headers['X-Line-Signature']
-    # รับ Body
-    body = request.get_data(as_text=True)
+print("SECRET:", channel_secret)
+print("TOKEN:", channel_access_token)
 
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
-    return 'OK'
+@app.route("/callback", methods=['GET', 'POST'])
+def callback():
+    body = request.get_data(as_text=True)
+    print("METHOD:", request.method)
+    print("BODY:", body)
+    return 'OK', 200
+
 
 # ฟังก์ชันนี้จะทำงานเมื่อมีข้อความเข้ามา
 @handler.add(MessageEvent, message=TextMessage)
