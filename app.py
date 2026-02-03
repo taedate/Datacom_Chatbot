@@ -153,7 +153,7 @@ def handle_message(event):
         symptom = msg
         
         # ใส่รูปคอมพิวเตอร์ซ่อม (ตัวอย่าง URL)
-        img_url = "https://images.unsplash.com/photo-1597872250977-010e7123bf07?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
         
         flex_msg = create_summary_flex(
             title="บันทึกแจ้งซ่อม",
@@ -178,7 +178,7 @@ def handle_message(event):
         item_list = msg
         
         # ใส่รูปกล่องพัสดุ
-        img_url = "https://images.unsplash.com/photo-1586769852044-692d6e3703f0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="คำสั่งซื้อหน่วยงาน",
@@ -196,7 +196,7 @@ def handle_message(event):
         product_name = msg
         
         # ใส่รูปเครื่องหมายคำถาม หรือ Customer Service
-        img_url = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="สอบถามสินค้า",
@@ -213,7 +213,7 @@ def handle_message(event):
         cctv_type = msg
         
         # ใส่รูปกล้องวงจรปิด
-        img_url = "https://images.unsplash.com/photo-1557324232-b8917d3c3d63?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+        img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="สนใจติดตั้ง CCTV",
