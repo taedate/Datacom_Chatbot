@@ -5,7 +5,7 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
+    MessageEvent, TextMessage, TextSendMessage, ImageMessage,
     QuickReply, QuickReplyButton, MessageAction,
     FlexSendMessage, BubbleContainer, BoxComponent, 
     TextComponent, SeparatorComponent, ImageComponent,
@@ -24,29 +24,44 @@ handler = WebhookHandler(channel_secret)
 sessions = {} 
 user_data = {} 
 
-# --- 1. ฟังก์ชันสร้าง Summary Flex Message (การ์ดสรุปงาน) ---
+def get_skip_image_quick_reply():
+    return QuickReply(items=[
+        QuickReplyButton(action=MessageAction(label="ไม่ใส่รูป (ข้าม)", text="ข้าม"))
+    ])
+
+# --- 1. ฟังก์ชันสร้าง Summary Flex Message (แก้ไข) ---
 def create_summary_flex(title, color, items, footer_text, image_url=None):
     
     # Header
     header_box = BoxComponent(
         layout='vertical',
         backgroundColor=color,
-        contents=[TextComponent(text=title, weight='bold', color='#ffffff', size='lg')]
+        # เพิ่ม paddingAll='none' เพื่อให้แน่ใจว่าไม่มีขอบขาวจาก header
+        paddingAll='none',
+        contents=[
+            # ซ้อน Box อีกชั้นเพื่อใส่ padding ให้ข้อความ title
+            BoxComponent(
+                layout='vertical',
+                paddingAll='md',
+                contents=[TextComponent(text=title, weight='bold', color='#ffffff', size='lg')]
+            )
+        ]
     )
 
-    # Hero Image (ปรับขนาดใหม่)
+    # Hero Image (แก้ไขส่วนนี้)
     hero_image = None
     if image_url:
         hero_image = ImageComponent(
             url=image_url,
             size='full',
             # --- จุดที่แก้ไข ---
-            # ปรับ aspect_ratio ให้กว้างขึ้น เพื่อลดความสูงของกล่อง
-            # ลองใช้ 2:1 (พอดีรูปคุณ) หรือ 2.35:1 (แบบโรงหนัง จะดูเพรียวลงอีก)
-            aspect_ratio='2.35:1', 
-            # aspect_mode='cover' จะตัดส่วนเกินออกให้เต็มกรอบ
-            # aspect_mode='fit' จะย่อรูปให้เห็นครบ แต่จะมีขอบขาว
-            aspect_mode='cover' 
+            # 1. เปลี่ยน aspectRatio เป็น 2:1 ให้ภาพสูงขึ้น เต็มกรอบมากขึ้น
+            aspect_ratio='2:1', 
+            # 2. aspect_mode='cover' เพื่อให้ภาพขยายเต็มพื้นที่โดยไม่สนใจว่าจะโดนตัด
+            aspect_mode='cover',
+            # 3. เพิ่ม backgroundColor ให้เหมือนสี header เพื่อความเนียน
+            backgroundColor=color 
+            # -----------------
         )
 
     # Body
@@ -66,6 +81,8 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
 
     # ประกอบร่าง Bubble
     bubble = BubbleContainer(
+        # เพิ่ม styles เพื่อลบ padding ของ hero ออกให้หมด
+        styles={'hero': {'separator': False, 'separatorColor': color, 'backgroundColor': color}},
         header=header_box,
         hero=hero_image, 
         body=BoxComponent(layout='vertical', contents=body_contents),
@@ -83,19 +100,14 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
     )
     return FlexSendMessage(alt_text=title, contents=bubble)
 
-
-# --- 2. ฟังก์ชันสร้าง Location Card (การ์ดแผนที่) ---
+# --- 2. ฟังก์ชันสร้าง Location Card (ใช้ของเดิม) ---
 def create_location_card():
-    # รูปแผนที่
     map_image_url = "https://github.com/taedate/datacom-image/blob/main/Datacom.jpg?raw=true"
-    
     bubble = BubbleContainer(
         direction='ltr',
         hero=ImageComponent(
             url=map_image_url,
             size='full',
-            # --- จุดที่แก้ไข ---
-            # ปรับลดความสูงลงจากเดิม 20:13 (สูงมาก) เป็น 2.35:1 (เตี้ยลง)
             aspect_ratio='2.35:1', 
             aspect_mode='cover',
             action=URIAction(uri='https://www.google.com/maps') 
@@ -149,8 +161,6 @@ def create_location_card():
     return FlexSendMessage(alt_text="ที่ตั้งร้าน", contents=bubble)
 
 # -----------------------------------------------
-# ส่วน Callback และ Handle Message ใช้ของเดิมได้เลยครับ (ไม่มีการเปลี่ยนแปลง)
-# -----------------------------------------------
 
 @app.route("/callback", methods=['POST'])
 def callback():
@@ -162,32 +172,33 @@ def callback():
         abort(403)
     return 'OK', 200
 
-@handler.add(MessageEvent, message=TextMessage)
+# --- HANDLER หลัก ---
+@handler.add(MessageEvent, message=(TextMessage, ImageMessage))
 def handle_message(event):
-    msg = event.message.text.strip()
     user_id = event.source.user_id 
     current_state = sessions.get(user_id, 'IDLE')
     reply_msgs = []
+    
+    msg_text = ""
+    is_image = False
+    
+    if isinstance(event.message, TextMessage):
+        msg_text = event.message.text.strip()
+    elif isinstance(event.message, ImageMessage):
+        is_image = True
+        msg_text = "__IMAGE_UPLOADED__"
 
-    # --- RESET COMMAND ---
-    if msg == "ยกเลิก":
+    if msg_text == "ยกเลิก":
         sessions[user_id] = 'IDLE'
         if user_id in user_data: del user_data[user_id]
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกรายการเรียบร้อย"))
         return
 
-    # =================================================================
-    # STATE: IDLE (เมนูหลัก)
-    # =================================================================
     if current_state == 'IDLE':
-        
-        # 1. ดูแผนที่ร้าน
-        if msg == "ติดต่อเรา" or msg == "แผนที่":
+        if msg_text == "ติดต่อเรา" or msg_text == "แผนที่":
             flex_msg = create_location_card()
             reply_msgs.append(flex_msg)
-
-        # 2. แจ้งซ่อม
-        elif msg == "แจ้งซ่อม": 
+        elif msg_text == "แจ้งซ่อม": 
             sessions[user_id] = 'REPAIR_SELECT_TYPE'
             quick_reply = QuickReply(items=[
                 QuickReplyButton(action=MessageAction(label="💻 คอมพิวเตอร์", text="คอมพิวเตอร์")),
@@ -195,19 +206,13 @@ def handle_message(event):
                 QuickReplyButton(action=MessageAction(label="⌨️ อุปกรณ์อื่นๆ", text="อุปกรณ์คอมพิวเตอร์"))
             ])
             reply_msgs.append(TextSendMessage(text="🔧 ต้องการซ่อมอุปกรณ์ประเภทไหนครับ?", quick_reply=quick_reply))
-
-        # 3. สั่งซื้อหน่วยงาน
-        elif msg == "สั่งซื้อหน่วยงาน":
+        elif msg_text == "สั่งซื้อหน่วยงาน":
             sessions[user_id] = 'ORG_WAIT_NAME'
             reply_msgs.append(TextSendMessage(text="🏢 ขอทราบชื่อหน่วยงานของท่านครับ?"))
-
-        # 4. สอบถามสินค้า
-        elif msg == "สอบถามสินค้า":
+        elif msg_text == "สอบถามสินค้า":
             sessions[user_id] = 'INQUIRY_WAIT_PRODUCT'
             reply_msgs.append(TextSendMessage(text="📦 ต้องการสอบถามข้อมูลสินค้าตัวไหนครับ?"))
-
-        # 5. ติดตั้งกล้อง
-        elif msg == "ติดตั้งกล้องวงจรปิด":
+        elif msg_text == "ติดตั้งกล้องวงจรปิด":
             sessions[user_id] = 'CCTV_SELECT_TYPE'
             quick_reply = QuickReply(items=[
                 QuickReplyButton(action=MessageAction(label="🏠 Smart Camera", text="Smart Camera")),
@@ -216,115 +221,157 @@ def handle_message(event):
                 QuickReplyButton(action=MessageAction(label="❓ อื่นๆ", text="อื่นๆ"))
             ])
             reply_msgs.append(TextSendMessage(text="📹 สนใจติดตั้งกล้องประเภทไหนครับ?", quick_reply=quick_reply))
-        
         else:
-            # Default response
-            reply_msgs.append(TextSendMessage(text="👋 สวัสดีครับ พิมพ์ 'ติดต่อเรา' เพื่อดูแผนที่ หรือเลือกเมนูรายการได้เลยครับ"))
+            if not is_image:
+                reply_msgs.append(TextSendMessage(text="👋 สวัสดีครับ พิมพ์ 'ติดต่อเรา' ดูแผนที่ หรือเลือกเมนูรายการได้เลยครับ"))
 
-    # =================================================================
-    # FLOW 1: แจ้งซ่อม (มี Logic อุปกรณ์อื่นๆ)
-    # =================================================================
+    # --- FLOW 1: แจ้งซ่อม ---
     elif current_state == 'REPAIR_SELECT_TYPE':
-        # กรณีเลือก "อุปกรณ์อื่นๆ" -> ไปถามชื่อก่อน
-        if msg == "อุปกรณ์คอมพิวเตอร์":
+        if msg_text == "อุปกรณ์คอมพิวเตอร์":
             sessions[user_id] = 'REPAIR_WAIT_DEVICE_NAME'
             reply_msgs.append(TextSendMessage(text="ระบุชื่ออุปกรณ์ที่ต้องการซ่อมครับ?"))
-        
-        # กรณีเลือก คอม/ปริ้นเตอร์ -> ข้ามไปถามอาการเลย
         else:
             if user_id not in user_data: user_data[user_id] = {}
-            user_data[user_id]['repair_type'] = msg
+            user_data[user_id]['repair_type'] = msg_text
             sessions[user_id] = 'REPAIR_WAIT_DETAIL'
-            reply_msgs.append(TextSendMessage(text=f"รับเรื่องซ่อม {msg} ครับ\n📝 กรุณาพิมพ์อาการเสียมาได้เลย"))
+            reply_msgs.append(TextSendMessage(text=f"รับเรื่องซ่อม {msg_text} ครับ\n📝 กรุณาพิมพ์อาการเสียมาได้เลย"))
 
     elif current_state == 'REPAIR_WAIT_DEVICE_NAME':
-        # รับชื่ออุปกรณ์ที่พิมพ์มา
         if user_id not in user_data: user_data[user_id] = {}
-        user_data[user_id]['repair_type'] = msg 
-        
+        user_data[user_id]['repair_type'] = msg_text 
         sessions[user_id] = 'REPAIR_WAIT_DETAIL'
-        reply_msgs.append(TextSendMessage(text=f"โอเคครับ รับซ่อม {msg}\n📝 ช่วยบอกอาการเสียหน่อยครับ?"))
+        reply_msgs.append(TextSendMessage(text=f"โอเคครับ รับซ่อม {msg_text}\n📝 ช่วยบอกอาการเสียหน่อยครับ?"))
 
     elif current_state == 'REPAIR_WAIT_DETAIL':
-        # จบ Flow ซ่อม -> แสดง Card
+        user_data[user_id]['symptom'] = msg_text
+        sessions[user_id] = 'REPAIR_WAIT_IMAGE'
+        reply_msgs.append(TextSendMessage(
+            text="📸 มีรูปภาพประกอบอาการเสียไหมครับ?\n(ส่งรูปมาได้เลย หรือกดปุ่ม 'ข้าม' ถ้าไม่มี)",
+            quick_reply=get_skip_image_quick_reply()
+        ))
+
+    elif current_state == 'REPAIR_WAIT_IMAGE':
+        has_image = "ไม่มี"
+        if is_image:
+            has_image = "มี (ได้รับแล้ว)"
+        elif msg_text == "ข้าม":
+            has_image = "ไม่มี"
+        else:
+            reply_msgs.append(TextSendMessage(text="กรุณาส่งรูป หรือกดปุ่ม 'ข้าม' ครับ", quick_reply=get_skip_image_quick_reply()))
+            line_bot_api.reply_message(event.reply_token, reply_msgs)
+            return
+
         repair_type = user_data[user_id].get('repair_type')
-        symptom = msg
-        
+        symptom = user_data[user_id].get('symptom')
         img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
         
-        # เรียกใช้ create_summary_flex ตรงนี้
         flex_msg = create_summary_flex(
             title="บันทึกแจ้งซ่อม",
-            color="#ff9100",
+            color="#ff9100", # สีส้ม
             image_url=img_url,
-            items=[("ประเภท", repair_type), ("อาการ", symptom), ("สถานะ", "รอประเมินราคา")],
+            items=[
+                ("ประเภท", repair_type), 
+                ("อาการ", symptom), 
+                ("รูปภาพแนบ", has_image),
+                ("สถานะ", "รอประเมินราคา")
+            ],
             footer_text="กรุณารอแอดมินประเมินราคา"
         )
         reply_msgs.append(flex_msg)
-        
-        # Reset
         sessions[user_id] = 'IDLE'
         del user_data[user_id]
 
-    # =================================================================
-    # FLOW 2: สั่งซื้อหน่วยงาน
-    # =================================================================
+    # --- FLOW 2: สั่งซื้อหน่วยงาน ---
     elif current_state == 'ORG_WAIT_NAME':
         if user_id not in user_data: user_data[user_id] = {}
-        user_data[user_id]['org_name'] = msg
+        user_data[user_id]['org_name'] = msg_text
         sessions[user_id] = 'ORG_WAIT_ITEM'
-        reply_msgs.append(TextSendMessage(text=f"ยินดีต้อนรับ {msg} ครับ\n🛒 พิมพ์รายการสินค้าได้เลย"))
+        reply_msgs.append(TextSendMessage(text=f"ยินดีต้อนรับ {msg_text} ครับ\n🛒 พิมพ์รายการสินค้าได้เลย"))
 
     elif current_state == 'ORG_WAIT_ITEM':
-        # จบ Flow สั่งซื้อ -> แสดง Card
+        user_data[user_id]['item_list'] = msg_text
+        sessions[user_id] = 'ORG_WAIT_IMAGE'
+        reply_msgs.append(TextSendMessage(
+            text="📸 มีรูปตัวอย่างสินค้าหรือใบสั่งซื้อไหมครับ?\n(ส่งรูปมาได้เลย หรือกดปุ่ม 'ข้าม')",
+            quick_reply=get_skip_image_quick_reply()
+        ))
+
+    elif current_state == 'ORG_WAIT_IMAGE':
+        has_image = "ไม่มี"
+        if is_image:
+            has_image = "มี (ได้รับแล้ว)"
+        elif msg_text == "ข้าม":
+            has_image = "ไม่มี"
+        else:
+            reply_msgs.append(TextSendMessage(text="กรุณาส่งรูป หรือกดปุ่ม 'ข้าม' ครับ", quick_reply=get_skip_image_quick_reply()))
+            line_bot_api.reply_message(event.reply_token, reply_msgs)
+            return
+
         org_name = user_data[user_id].get('org_name')
-        item_list = msg
-        
+        item_list = user_data[user_id].get('item_list')
         img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="คำสั่งซื้อหน่วยงาน",
-            color="#007bff",
+            color="#007bff", # สีน้ำเงิน
             image_url=img_url,
-            items=[("หน่วยงาน", org_name), ("รายการ", item_list), ("สถานะ", "รอตรวจสอบสต็อก")],
+            items=[
+                ("หน่วยงาน", org_name), 
+                ("รายการ", item_list), 
+                ("รูปภาพแนบ", has_image),
+                ("สถานะ", "รอตรวจสอบสต็อก")
+            ],
             footer_text="แอดมินจะรีบส่งใบเสนอราคาให้ครับ"
         )
         reply_msgs.append(flex_msg)
-        
         sessions[user_id] = 'IDLE'
         del user_data[user_id]
 
-    # =================================================================
-    # FLOW 3: สอบถามสินค้า
-    # =================================================================
+    # --- FLOW 3: สอบถามสินค้า ---
     elif current_state == 'INQUIRY_WAIT_PRODUCT':
-        # จบ Flow สอบถาม -> แสดง Card
-        product_name = msg
-        
+        user_data[user_id] = {'product_name': msg_text}
+        sessions[user_id] = 'INQUIRY_WAIT_IMAGE'
+        reply_msgs.append(TextSendMessage(
+            text="📸 มีรูปตัวอย่างสินค้าไหมครับ?\n(ส่งรูปมาได้เลย หรือกดปุ่ม 'ข้าม')",
+            quick_reply=get_skip_image_quick_reply()
+        ))
+    
+    elif current_state == 'INQUIRY_WAIT_IMAGE':
+        has_image = "ไม่มี"
+        if is_image:
+            has_image = "มี (ได้รับแล้ว)"
+        elif msg_text == "ข้าม":
+            has_image = "ไม่มี"
+        else:
+            reply_msgs.append(TextSendMessage(text="กรุณาส่งรูป หรือกดปุ่ม 'ข้าม' ครับ", quick_reply=get_skip_image_quick_reply()))
+            line_bot_api.reply_message(event.reply_token, reply_msgs)
+            return
+
+        product_name = user_data[user_id].get('product_name')
         img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
 
         flex_msg = create_summary_flex(
             title="สอบถามสินค้า",
-            color="#9c27b0",
+            color="#9c27b0", # สีม่วง
             image_url=img_url,
-            items=[("สินค้า", product_name), ("สถานะ", "รอแอดมินตอบกลับ")],
+            items=[
+                ("สินค้า", product_name), 
+                ("รูปภาพแนบ", has_image),
+                ("สถานะ", "รอแอดมินตอบกลับ")
+            ],
             footer_text="กำลังเรียกแอดมินครับ"
         )
         reply_msgs.append(flex_msg)
         sessions[user_id] = 'IDLE'
+        del user_data[user_id]
 
-    # =================================================================
-    # FLOW 4: CCTV
-    # =================================================================
+    # --- FLOW 4: CCTV ---
     elif current_state == 'CCTV_SELECT_TYPE':
-        # จบ Flow กล้อง -> แสดง Card
-        cctv_type = msg
-        
+        cctv_type = msg_text
         img_url = "https://github.com/taedate/datacom-image/blob/main/reply.png?raw=true"
-
         flex_msg = create_summary_flex(
             title="สนใจติดตั้ง CCTV",
-            color="#00c853",
+            color="#00c853", # สีเขียว
             image_url=img_url,
             items=[("ประเภท", cctv_type), ("สถานะ", "รับเรื่องแล้ว")],
             footer_text="เจ้าหน้าที่จะติดต่อกลับครับ"
@@ -332,7 +379,6 @@ def handle_message(event):
         reply_msgs.append(flex_msg)
         sessions[user_id] = 'IDLE'
 
-    # ส่งข้อความทั้งหมด
     if reply_msgs:
         line_bot_api.reply_message(event.reply_token, reply_msgs)
 
