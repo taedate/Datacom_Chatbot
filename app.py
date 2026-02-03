@@ -29,7 +29,7 @@ def get_skip_image_quick_reply():
         QuickReplyButton(action=MessageAction(label="ไม่ใส่รูป (ข้าม)", text="ข้าม"))
     ])
 
-# --- 1. ฟังก์ชันสร้าง Summary Flex Message (แบบ Compact: ข้อความทับรูป 4:3) ---
+# --- 1. ฟังก์ชันสร้าง Summary Flex Message (แก้ไข Bug แล้ว) ---
 def create_summary_flex(title, color, items, footer_text, image_url=None):
     
     # 1. เตรียมเนื้อหาที่จะแสดง (Title + รายละเอียด)
@@ -44,8 +44,8 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
             layout='baseline',
             spacing='sm',
             contents=[
-                TextComponent(text=label, color='#cccccc', size='xs', flex=2), # สีเทาอ่อน
-                TextComponent(text=value, wrap=True, color='#ffffff', size='xs', flex=5) # สีขาว
+                TextComponent(text=label, color='#cccccc', size='xs', flex=2),
+                TextComponent(text=value, wrap=True, color='#ffffff', size='xs', flex=5)
             ]
         ))
         
@@ -55,38 +55,45 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
     # 2. สร้างกล่องข้อความโปร่งแสง (Overlay Box)
     overlay_box = BoxComponent(
         layout='vertical',
-        position='absolute',     # สั่งให้ลอยทับ
+        position='absolute',
         backgroundColor='#000000cc', # สีดำโปร่งแสง
-        offsetBottom='0px',      # ชิดขอบล่าง
-        start='0px',             # ชิดขอบซ้าย
-        end='0px',               # ชิดขอบขวา
-        paddingAll='md',         # เว้นระยะขอบใน
-        contents=content_list    # เอาเนื้อหาใส่เข้าไป
+        offsetBottom='0px',
+        start='0px',
+        end='0px',
+        paddingAll='md',
+        contents=content_list
     )
 
     # 3. สร้างรูปภาพพื้นหลัง (Main Image)
-    # ถ้าไม่มีรูป ให้ใช้รูป Placeholder
     final_image_url = image_url if image_url else "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
     
     main_image = ImageComponent(
         url=final_image_url,
         size='full',
-        aspect_ratio='4:3',      # <--- ปรับเป็น 4:3 ตามที่ต้องการ (Card จะทรงเกือบจัตุรัส)
-        aspect_mode='cover'      # ขยายเต็มพื้นที่
+        aspect_ratio='4:3',
+        aspect_mode='cover'
     )
 
-    # 4. ประกอบร่าง
+    # 4. สร้างแถบสีด้านบน (ใช้ BoxComponent แทน Border)
+    color_strip = BoxComponent(
+        layout='vertical',
+        height='6px', # ความหนาของแถบสี
+        backgroundColor=color,
+        width='100%'
+    )
+
+    # 5. ประกอบร่าง
     bubble = BubbleContainer(
         body=BoxComponent(
             layout='vertical',
-            paddingAll='none',   # ไม่เอาขอบขาวรอบๆ
+            paddingAll='none',
             contents=[
-                main_image,      # ชั้นล่าง: รูปภาพ
-                overlay_box      # ชั้นบน: ข้อความทับรูป
+                color_strip,     # วางแถบสีไว้บนสุด
+                main_image,      # วางรูปภาพ
+                overlay_box      # วางข้อความทับรูป
             ]
-        ),
-        # ใส่ขีดสีด้านบน เพื่อบอกประเภทงาน (สีส้ม/ฟ้า/ม่วง)
-        styles={'body': {'borderTopColor': color, 'borderTopWidth': '5px'}} 
+        )
+        # ลบ styles ที่เป็นปัญหาออกแล้ว
     )
     
     return FlexSendMessage(alt_text=title, contents=bubble)
@@ -255,7 +262,6 @@ def handle_message(event):
 
         repair_type = user_data[user_id].get('repair_type')
         symptom = user_data[user_id].get('symptom')
-        # ใส่รูป Default กรณี user ไม่ได้อัปโหลด
         img_url = "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
         
         flex_msg = create_summary_flex(
