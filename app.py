@@ -312,6 +312,12 @@ def handle_cctv(event, text, user_id):
     )
     line_bot_api.reply_message(event.reply_token, card)
 
+# ================= HEALTH CHECK / KEEP ALIVE =================
+@app.route("/", methods=["GET"])
+def home():
+    # หน้าเว็บเปล่าๆ เอาไว้ให้ cron-job.org ยิงมาสะกิดทุกๆ 14 นาที
+    return "Bot is awake and running!"
+
 # ================= RUN =================
 if __name__ == "__main__":
     app.run(port=5000)
