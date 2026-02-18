@@ -165,7 +165,7 @@ def handle_message(event):
     elif state.startswith("INQUIRY_"):
         handle_inquiry(event, text, user_id, state, is_image)
     elif state == "CCTV_SELECT":
-        handle_cctv(event, text, user_id)
+        handle_install(event, text, user_id, state, is_image)
 
 # ================= FLOWS =================
 
@@ -216,10 +216,29 @@ def handle_repair(event, text, user_id, state, is_image):
     if state == "REPAIR_TYPE":
         user_data[user_id] = {"type": text}
         sessions[user_id] = "REPAIR_DETAIL"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📝 อาการเสียคืออะไรครับ?"))
+        
+        # เช็คว่าถ้าลูกค้าเลือก "อุปกรณ์อื่น" ให้เพิ่มบรรทัด "อุปกรณ์ที่ต้องการซ่อม:" เข้าไป
+        if text == "อุปกรณ์อื่น":
+            prompt_text = (
+                "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\n"
+                "อุปกรณ์ที่ต้องการซ่อม:\n"
+                "ยี่ห้อ:\n"
+                "รุ่น:\n"
+                "อาการ/รายละเอียด:"
+            )
+        else:
+            prompt_text = (
+                "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\n"
+                "ยี่ห้อ:\n"
+                "รุ่น:\n"
+                "อาการ/รายละเอียด:"
+            )
+            
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text))
 
     elif state == "REPAIR_DETAIL":
-        user_data[user_id]["symptom"] = text
+        # รับข้อมูลที่ลูกค้าพิมพ์มาทั้งหมดเก็บไว้ใน key "detail"
+        user_data[user_id]["detail"] = text
         sessions[user_id] = "REPAIR_IMAGE"
         line_bot_api.reply_message(
             event.reply_token,
@@ -230,11 +249,12 @@ def handle_repair(event, text, user_id, state, is_image):
         data = user_data.pop(user_id)
         sessions[user_id] = "IDLE"
 
+        # นำข้อมูลจากที่ลูกค้าพิมพ์ยาวๆ มาใส่ใน Flex Message
         card = create_summary_flex(
             "บันทึกแจ้งซ่อม", "#ff9800",
             [
-                ("ประเภท", data["type"]),
-                ("อาการ", data["symptom"]),
+                ("อุปกรณ์", data["type"]),
+                ("รายละเอียด", data["detail"]), # นำข้อความแบบ Multi-line มาแสดงผล
                 ("รูปภาพ", "มี" if is_image else "ไม่มี"),
                 ("สถานะ", "รอประเมินราคา")
             ],
@@ -243,15 +263,12 @@ def handle_repair(event, text, user_id, state, is_image):
         )
         line_bot_api.reply_message(event.reply_token, card)
 
+
 # ---------- ORG ----------
 def handle_org(event, text, user_id, state, is_image):
-    if state == "ORG_NAME":
-        user_data[user_id] = {"org": text}
-        sessions[user_id] = "ORG_ITEM"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="🛒 รายการสินค้าที่ต้องการครับ"))
-
-    elif state == "ORG_ITEM":
-        user_data[user_id]["item"] = text
+    if state == "ORG_DETAIL":
+        # รับข้อมูลที่ลูกค้าพิมพ์มาทั้งหมดเก็บไว้ใน key "detail"
+        user_data[user_id] = {"detail": text}
         sessions[user_id] = "ORG_IMAGE"
         line_bot_api.reply_message(
             event.reply_token,
@@ -265,8 +282,7 @@ def handle_org(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "คำสั่งซื้อหน่วยงาน", "#1976d2",
             [
-                ("หน่วยงาน", data["org"]),
-                ("รายการ", data["item"]),
+                ("รายละเอียด", data["detail"]), # ดึงข้อมูลที่พิมพ์รวมกันมาโชว์ทีเดียว
                 ("รูปภาพ", "มี" if is_image else "ไม่มี"),
                 ("สถานะ", "รอตรวจสอบสต็อก")
             ],
@@ -301,16 +317,46 @@ def handle_inquiry(event, text, user_id, state, is_image):
         )
         line_bot_api.reply_message(event.reply_token, card)
 
-# ---------- CCTV ----------
-def handle_cctv(event, text, user_id):
-    sessions[user_id] = "IDLE"
-    card = create_summary_flex(
-        "สนใจติดตั้ง CCTV", "#00c853",
-        [("ประเภท", text), ("สถานะ", "รับเรื่องแล้ว")],
-        "เจ้าหน้าที่จะติดต่อกลับครับ",
-        "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
-    )
-    line_bot_api.reply_message(event.reply_token, card)
+# ---------- INSTALL ----------
+def handle_install(event, text, user_id, state, is_image):
+    if state == "INSTALL_TYPE":
+        user_data[user_id] = {"type": text}
+        sessions[user_id] = "INSTALL_DETAIL"
+        
+        # ปรับคำถามให้ตอบง่ายขึ้น สำหรับลูกค้าที่ไม่รู้สเปก
+        prompt_text = (
+            "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\n"
+            "ชื่อหน่วยงาน/ชื่อลูกค้า:\n"
+            "เบอร์โทรติดต่อ:\n"
+            "ความต้องการ/ขนาดพื้นที่ (หากไม่ทราบสเปก พิมพ์ 'ให้ช่างแนะนำ'):"
+        )
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text))
+
+    elif state == "INSTALL_DETAIL":
+        user_data[user_id]["detail"] = text
+        sessions[user_id] = "INSTALL_IMAGE"
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="📸 มีรูปสถานที่หรือหน้างานไหมครับ?", quick_reply=skip_image_qr())
+        )
+
+    elif state == "INSTALL_IMAGE":
+        data = user_data.pop(user_id)
+        sessions[user_id] = "IDLE"
+
+        # ปรับ Flex Message ให้แสดงข้อมูลรวมทั้งหมดที่ลูกค้าพิมพ์มา
+        card = create_summary_flex(
+            "งานติดตั้ง", "#00c853",
+            [
+                ("ประเภทงาน", data["type"]),
+                ("ข้อมูลลูกค้า", data["detail"]), # เปลี่ยนชื่อหัวข้อให้ครอบคลุมเบอร์โทรและความต้องการ
+                ("รูปหน้างาน", "มี" if is_image else "ไม่มี"),
+                ("สถานะ", "รอช่างประเมิน/ติดต่อกลับ")
+            ],
+            "เจ้าหน้าที่จะรีบติดต่อกลับครับ",
+            "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
+        )
+        line_bot_api.reply_message(event.reply_token, card)
 
 # ================= HEALTH CHECK / KEEP ALIVE =================
 @app.route("/", methods=["GET"])
