@@ -22,7 +22,7 @@ rich_menu_payload = {
     {"bounds": {"x": 1675, "y": 0, "width": 825, "height": 916}, "action": {"type": "message", "text": "ตรวจสอบสถานะงานซ่อม"}},
     {"bounds": {"x": 0, "y": 932, "width": 821, "height": 754}, "action": {"type": "message", "text": "สั่งซื้อหน่วยงาน"}},
     {"bounds": {"x": 837, "y": 932, "width": 830, "height": 754}, "action": {"type": "message", "text": "สอบถามสินค้า"}},
-    {"bounds": {"x": 1679, "y": 932, "width": 821, "height": 754}, "action": {"type": "message", "text": "งานติดตั้ง"}}
+    {"bounds": {"x": 1679, "y": 932, "width": 821, "height": 754}, "action": {"type": "message", "text": "ช่วยเหลือ"}}
   ]
 }
 
