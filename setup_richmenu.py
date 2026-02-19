@@ -4,16 +4,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ================= ใส่ข้อมูลของคุณตรงนี้ =================
-ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")  # ดึง Token จาก .env แบบเดียวกับ Flask
-IMAGE_PATH = "/Users/nakorn/Documents/GitHub/Datacom_Chatbot/assets/Rich_menu.png"  # ชื่อไฟล์รูปของคุณ
+ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
+IMAGE_PATH = "/Users/nakorn/Documents/GitHub/Datacom_Chatbot/assets/Rich_menu.png"
 
 HEADERS = {
     "Authorization": f"Bearer {ACCESS_TOKEN}",
     "Content-Type": "application/json"
 }
 
-# Payload ที่แก้ปุ่มเป็น "ตรวจสอบสถานะงานซ่อม" แล้ว
 rich_menu_payload = {
   "size": {"width": 2500, "height": 1686},
   "selected": True,
@@ -41,12 +39,18 @@ def setup_rich_menu():
     print("2. Uploading Image...")
     with open(IMAGE_PATH, "rb") as f:
         headers_img = {"Authorization": f"Bearer {ACCESS_TOKEN}", "Content-Type": "image/png"}
-        res_img = requests.post(f"https://api.line.me/v2/bot/richmenu/{rich_menu_id}/content", headers=headers_img, data=f)
+        # --- เปลี่ยน URL เป็น api-data ---
+        res_img = requests.post(f"https://api-data.line.me/v2/bot/richmenu/{rich_menu_id}/content", headers=headers_img, data=f)
         print(f"-> Upload Status: {res_img.status_code}")
+        if res_img.status_code != 200:
+            print("Upload Error:", res_img.text)
 
     print("3. Setting as Default Rich Menu...")
     res_default = requests.post(f"https://api.line.me/v2/bot/user/all/richmenu/{rich_menu_id}", headers=HEADERS)
     print(f"-> Set Default Status: {res_default.status_code}")
+    if res_default.status_code != 200:
+        print("Set Default Error:", res_default.text)
+        
     print("🎉 เสร็จเรียบร้อย! ลองเปิดแอป LINE ดูได้เลยครับ")
 
 if __name__ == "__main__":

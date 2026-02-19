@@ -25,7 +25,6 @@ sessions = {}
 user_data = {}
 
 # ================= FLEX =================
-# (ยังคงใช้ฟังก์ชัน Flex Message และ Location เหมือนเดิมทั้งหมด)
 def create_summary_flex(title, color, items, footer_text, image_url=None):
     body_contents = [
         TextComponent(text=title, weight='bold', size='lg', wrap=True),
@@ -94,8 +93,18 @@ def create_location_card():
         )
     )
 
+# เพิ่มปุ่มยกเลิกในกรณีข้ามรูปภาพ
 def skip_image_qr():
-    return QuickReply(items=[QuickReplyButton(action=MessageAction(label="ไม่ใส่รูป (ข้าม)", text="ข้าม"))])
+    return QuickReply(items=[
+        QuickReplyButton(action=MessageAction(label="ไม่ใส่รูป (ข้าม)", text="ข้าม")),
+        QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
+    ])
+
+# ฟังก์ชันใหม่ สำหรับปุ่มยกเลิกเดี่ยวๆ เวลาให้กรอกข้อความ
+def cancel_qr():
+    return QuickReply(items=[
+        QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
+    ])
 
 # ================= WEBHOOK =================
 @app.route("/callback", methods=["POST"])
@@ -119,7 +128,7 @@ def handle_message(event):
     if text == "ยกเลิก":
         sessions[user_id] = "IDLE"
         user_data.pop(user_id, None)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกเรียบร้อย"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกรายการเรียบร้อยแล้วครับ"))
         return
 
     # Route state ไปยัง Flow ต่างๆ
@@ -145,7 +154,7 @@ def handle_idle(event, text, user_id):
         sessions[user_id] = "CHECK_STATUS"
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="🔍 รบกวนพิมพ์ 'เบอร์โทรศัพท์' หรือ 'รหัสงานซ่อม' เพื่อตรวจสอบสถานะครับ")
+            TextSendMessage(text="🔍 รบกวนพิมพ์ 'เบอร์โทรศัพท์' หรือ 'รหัสงานซ่อม' เพื่อตรวจสอบสถานะครับ", quick_reply=cancel_qr())
         )
 
     elif text == "แจ้งซ่อม":
@@ -153,17 +162,23 @@ def handle_idle(event, text, user_id):
         qr = QuickReply(items=[
             QuickReplyButton(action=MessageAction(label="💻 คอมพิวเตอร์", text="คอมพิวเตอร์")),
             QuickReplyButton(action=MessageAction(label="🖨️ ปริ้นเตอร์", text="ปริ้นเตอร์")),
-            QuickReplyButton(action=MessageAction(label="⌨️ อื่นๆ", text="อุปกรณ์อื่น"))
+            QuickReplyButton(action=MessageAction(label="⌨️ อื่นๆ", text="อุปกรณ์อื่น")),
+            QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
         ])
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ต้องการซ่อมอะไรครับ?", quick_reply=qr))
 
     elif text == "สั่งซื้อหน่วยงาน":
-        sessions[user_id] = "ORG_NAME"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="🏢 ชื่อหน่วยงานคืออะไรครับ?"))
+        sessions[user_id] = "ORG_DETAIL"
+        prompt_text = (
+            "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\n"
+            "ชื่อหน่วยงาน:\n"
+            "รายการสินค้าที่ต้องการพร้อมจำนวน:"
+        )
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
 
     elif text == "สอบถามสินค้า":
         sessions[user_id] = "INQUIRY_PRODUCT"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📦 สอบถามสินค้าตัวไหนครับ?"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📦 สอบถามสินค้าตัวไหนครับ?", quick_reply=cancel_qr()))
 
     elif text == "งานติดตั้ง":
         sessions[user_id] = "INSTALL_TYPE"
@@ -173,20 +188,28 @@ def handle_idle(event, text, user_id):
             QuickReplyButton(action=MessageAction(label="🖥️ ระบบเซิฟเวอร์", text="ระบบเซิฟเวอร์")),
             QuickReplyButton(action=MessageAction(label="📽️ โปรเจคเตอร์", text="โปรเจคเตอร์")),
             QuickReplyButton(action=MessageAction(label="💻 ชุดคอมพิวเตอร์", text="ชุดคอมพิวเตอร์")),
-            QuickReplyButton(action=MessageAction(label="🛠️ ติดตั้งอื่นๆ", text="ติดตั้งอื่นๆ"))
+            QuickReplyButton(action=MessageAction(label="🛠️ ติดตั้งอื่นๆ", text="ติดตั้งอื่นๆ")),
+            QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
         ])
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="สนใจงานติดตั้งประเภทไหนครับ?", quick_reply=qr))
 
     else:
+        # แนะนำให้ใส่เป็นปุ่มเมนูหลักในกรณีพิมพ์ผิดหรือเริ่มแชท
+        qr = QuickReply(items=[
+            QuickReplyButton(action=MessageAction(label="🔧 แจ้งซ่อม", text="แจ้งซ่อม")),
+            QuickReplyButton(action=MessageAction(label="🛠️ งานติดตั้ง", text="งานติดตั้ง")),
+            QuickReplyButton(action=MessageAction(label="🏢 สั่งซื้อหน่วยงาน", text="สั่งซื้อหน่วยงาน")),
+            QuickReplyButton(action=MessageAction(label="📦 สอบถามสินค้า", text="สอบถามสินค้า")),
+            QuickReplyButton(action=MessageAction(label="📍 ติดต่อเรา", text="ติดต่อเรา"))
+        ])
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="👋 พิมพ์ แจ้งซ่อม / สอบถามสินค้า / สั่งซื้อหน่วยงาน / ติดต่อเรา")
+            TextSendMessage(text="👋 สวัสดีครับ ยินดีให้บริการ เลือกเมนูด้านล่างได้เลยครับ", quick_reply=qr)
         )
 
 # ---------- CHECK STATUS ----------
 def handle_check_status(event, text, user_id):
-    sessions[user_id] = "IDLE" # รีเซ็ต state กลับเป็น IDLE
-    # ตรงนี้คือจำลองการตอบกลับ ในอนาคตคุณสามารถนำตัวแปร 'text' ไปค้นหาใน Database ได้
+    sessions[user_id] = "IDLE"
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=f"กำลังตรวจสอบข้อมูลของ: {text}\n(แอดมินจะรีบแจ้งความคืบหน้าให้ทราบครับ)")
@@ -202,7 +225,7 @@ def handle_repair(event, text, user_id, state, is_image):
             if text == "อุปกรณ์อื่น" else
             "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\nยี่ห้อ:\nรุ่น:\nอาการ/รายละเอียด:"
         )
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
 
     elif state == "REPAIR_DETAIL":
         user_data[user_id]["detail"] = text
@@ -221,23 +244,27 @@ def handle_repair(event, text, user_id, state, is_image):
 
 # ---------- ORG ----------
 def handle_org(event, text, user_id, state, is_image):
-    if state == "ORG_NAME":
-        user_data[user_id] = {"name": text}
-        sessions[user_id] = "ORG_DETAIL"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📝 ต้องการสั่งซื้ออะไรบ้างครับ?"))
-
-    elif state == "ORG_DETAIL":
-        user_data[user_id]["detail"] = text
+    if state == "ORG_DETAIL":
+        user_data[user_id] = {"detail": text}
         sessions[user_id] = "ORG_IMAGE"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 มีรูปไหมครับ?", quick_reply=skip_image_qr()))
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="📸 มีรูปไหมครับ?", quick_reply=skip_image_qr())
+        )
 
     elif state == "ORG_IMAGE":
         data = user_data.pop(user_id)
         sessions[user_id] = "IDLE"
+
         card = create_summary_flex(
             "คำสั่งซื้อหน่วยงาน", "#1976d2",
-            [("หน่วยงาน", data["name"]), ("รายละเอียด", data["detail"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอตรวจสอบสต็อก")],
-            "แอดมินจะส่งใบเสนอราคาให้ครับ", "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
+            [
+                ("รายละเอียด", data["detail"]),
+                ("รูปภาพ", "มี" if is_image else "ไม่มี"),
+                ("สถานะ", "รอตรวจสอบสต็อก")
+            ],
+            "แอดมินจะส่งใบเสนอราคาให้ครับ",
+            "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -264,7 +291,7 @@ def handle_install(event, text, user_id, state, is_image):
         user_data[user_id] = {"type": text}
         sessions[user_id] = "INSTALL_DETAIL"
         prompt_text = "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\nชื่อหน่วยงาน/ชื่อลูกค้า:\nเบอร์โทรติดต่อ:\nความต้องการ/ขนาดพื้นที่ (หากไม่ทราบสเปก พิมพ์ 'ให้ช่างแนะนำ'):"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
 
     elif state == "INSTALL_DETAIL":
         user_data[user_id]["detail"] = text
