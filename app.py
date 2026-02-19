@@ -1,6 +1,8 @@
 import os
+import io  # <-- เพิ่มอันนี้
 from dotenv import load_dotenv
-from flask import Flask, request, abort
+from flask import Flask, request, abort, send_file  # <-- เพิ่ม send_file
+from PIL import Image
 
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -8,7 +10,8 @@ from linebot.models import (
     MessageEvent, TextMessage, ImageMessage, TextSendMessage,
     QuickReply, QuickReplyButton, MessageAction, FlexSendMessage,
     BubbleContainer, BoxComponent, TextComponent, SeparatorComponent,
-    ImageComponent, ButtonComponent, URIAction
+    ImageComponent, ButtonComponent, URIAction, ImagemapSendMessage,
+    BaseSize, URIImagemapAction, MessageImagemapAction, ImagemapArea
 )
 
 # ================= CONFIG =================
@@ -93,18 +96,75 @@ def create_location_card():
         )
     )
 
-# เพิ่มปุ่มยกเลิกในกรณีข้ามรูปภาพ
 def skip_image_qr():
     return QuickReply(items=[
         QuickReplyButton(action=MessageAction(label="ไม่ใส่รูป (ข้าม)", text="ข้าม")),
         QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
     ])
 
-# ฟังก์ชันใหม่ สำหรับปุ่มยกเลิกเดี่ยวๆ เวลาให้กรอกข้อความ
 def cancel_qr():
     return QuickReply(items=[
         QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
     ])
+
+# ================= IMAGEMAP =================
+def create_help_imagemap():
+    # <-- แก้ URL ให้ตรงกับ @app.route ด้านล่าง (ตัด /static ออก)
+    base_url = "https://datacom-chatbot.onrender.com/imagemap/help" 
+    
+    return ImagemapSendMessage(
+        base_url=base_url,
+        alt_text="เมนูช่วยเหลือ",
+        base_size=BaseSize(height=520, width=1040),
+        actions=[
+            URIImagemapAction(
+                link_uri='https://maps.app.goo.gl/i6819NkupemvipH9A',
+                area=ImagemapArea(x=27, y=30, width=484, height=166)
+            ),
+            MessageImagemapAction(
+                text='เวลาเปิดปิด',
+                area=ImagemapArea(x=534, y=31, width=479, height=163)
+            ),
+            URIImagemapAction(
+                link_uri='https://datacom-service.com/',
+                area=ImagemapArea(x=26, y=221, width=487, height=170)
+            ),
+            MessageImagemapAction(
+                text='ติดต่อด่วนโทร',
+                area=ImagemapArea(x=535, y=221, width=476, height=169)
+            ),
+            MessageImagemapAction(
+                text='คำถามอื่นๆ',
+                area=ImagemapArea(x=29, y=412, width=985, height=87)
+            )
+        ]
+    )
+
+# ================= IMAGEMAP ROUTE =================
+@app.route("/imagemap/help/<int:size>", methods=["GET"])
+def serve_imagemap(size):
+    if size not in [1040, 700, 460, 300, 240]:
+        abort(404)
+        
+    original_image_path = os.path.join("static", "help_menu.png")
+    
+    try:
+        img = Image.open(original_image_path)
+        
+        width_percent = (size / float(img.size[0]))
+        new_height = int((float(img.size[1]) * float(width_percent)))
+        
+        img_resized = img.resize((size, new_height), Image.Resampling.LANCZOS)
+        
+        img_io = io.BytesIO()
+        img_resized.save(img_io, 'PNG', quality=85)
+        img_io.seek(0)
+        
+        return send_file(img_io, mimetype='image/png')
+        
+    except Exception as e:
+        print(f"Error processing imagemap: {e}")
+        abort(404)
 
 # ================= WEBHOOK =================
 @app.route("/callback", methods=["POST"])
@@ -131,7 +191,6 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกรายการเรียบร้อยแล้วครับ"))
         return
 
-    # Route state ไปยัง Flow ต่างๆ
     if state == "IDLE":
         handle_idle(event, text, user_id)
     elif state == "CHECK_STATUS":
@@ -142,13 +201,14 @@ def handle_message(event):
         handle_org(event, text, user_id, state, is_image)
     elif state.startswith("INQUIRY_"):
         handle_inquiry(event, text, user_id, state, is_image)
-    elif state.startswith("INSTALL_"):
-        handle_install(event, text, user_id, state, is_image)
 
 # ================= FLOWS =================
 def handle_idle(event, text, user_id):
     if text in ["ติดต่อเรา", "แผนที่"]:
         line_bot_api.reply_message(event.reply_token, create_location_card())
+        
+    elif text == "ช่วยเหลือ":
+        line_bot_api.reply_message(event.reply_token, create_help_imagemap())
 
     elif text == "ตรวจสอบสถานะงานซ่อม":
         sessions[user_id] = "CHECK_STATUS"
@@ -180,26 +240,20 @@ def handle_idle(event, text, user_id):
         sessions[user_id] = "INQUIRY_PRODUCT"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📦 สอบถามสินค้าตัวไหนครับ?", quick_reply=cancel_qr()))
 
-    elif text == "งานติดตั้ง":
-        sessions[user_id] = "INSTALL_TYPE"
-        qr = QuickReply(items=[
-            QuickReplyButton(action=MessageAction(label="📹 กล้องวงจรปิด", text="กล้องวงจรปิด")),
-            QuickReplyButton(action=MessageAction(label="🔌 สายแลน", text="สายแลน")),
-            QuickReplyButton(action=MessageAction(label="🖥️ ระบบเซิฟเวอร์", text="ระบบเซิฟเวอร์")),
-            QuickReplyButton(action=MessageAction(label="📽️ โปรเจคเตอร์", text="โปรเจคเตอร์")),
-            QuickReplyButton(action=MessageAction(label="💻 ชุดคอมพิวเตอร์", text="ชุดคอมพิวเตอร์")),
-            QuickReplyButton(action=MessageAction(label="🛠️ ติดตั้งอื่นๆ", text="ติดตั้งอื่นๆ")),
-            QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
-        ])
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="สนใจงานติดตั้งประเภทไหนครับ?", quick_reply=qr))
+    # --- ดักจับข้อความที่มาจาก Imagemap ---
+    elif text == "เวลาเปิดปิด":
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⏰ ร้านเปิดให้บริการ จันทร์-เสาร์ เวลา 09:00 - 18:00 น. (หยุดวันอาทิตย์)"))
+    elif text == "ติดต่อด่วนโทร":
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📞 โทรติดต่อช่างด่วน: 081-234-5678"))
+    elif text == "คำถามอื่นๆ":
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="พิมพ์คำถามทิ้งไว้ได้เลยครับ แอดมินจะรีบเข้ามาตอบให้เร็วที่สุดครับ"))
 
     else:
-        # แนะนำให้ใส่เป็นปุ่มเมนูหลักในกรณีพิมพ์ผิดหรือเริ่มแชท
         qr = QuickReply(items=[
             QuickReplyButton(action=MessageAction(label="🔧 แจ้งซ่อม", text="แจ้งซ่อม")),
-            QuickReplyButton(action=MessageAction(label="🛠️ งานติดตั้ง", text="งานติดตั้ง")),
             QuickReplyButton(action=MessageAction(label="🏢 สั่งซื้อหน่วยงาน", text="สั่งซื้อหน่วยงาน")),
             QuickReplyButton(action=MessageAction(label="📦 สอบถามสินค้า", text="สอบถามสินค้า")),
+            QuickReplyButton(action=MessageAction(label="ℹ️ ช่วยเหลือ", text="ช่วยเหลือ")),
             QuickReplyButton(action=MessageAction(label="📍 ติดต่อเรา", text="ติดต่อเรา"))
         ])
         line_bot_api.reply_message(
@@ -238,7 +292,7 @@ def handle_repair(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "บันทึกแจ้งซ่อม", "#ff9800",
             [("อุปกรณ์", data["type"]), ("รายละเอียด", data["detail"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอประเมินราคา")],
-            "แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
+            "แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -264,7 +318,7 @@ def handle_org(event, text, user_id, state, is_image):
                 ("สถานะ", "รอตรวจสอบสต็อก")
             ],
             "แอดมินจะส่งใบเสนอราคาให้ครับ",
-            "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
+            "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -281,30 +335,7 @@ def handle_inquiry(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "สอบถามสินค้า", "#9c27b0",
             [("สินค้า", data["product"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอแอดมินตอบ")],
-            "กำลังเรียกเจ้าหน้าที่ครับ", "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
-        )
-        line_bot_api.reply_message(event.reply_token, card)
-
-# ---------- INSTALL ----------
-def handle_install(event, text, user_id, state, is_image):
-    if state == "INSTALL_TYPE":
-        user_data[user_id] = {"type": text}
-        sessions[user_id] = "INSTALL_DETAIL"
-        prompt_text = "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\nชื่อหน่วยงาน/ชื่อลูกค้า:\nเบอร์โทรติดต่อ:\nความต้องการ/ขนาดพื้นที่ (หากไม่ทราบสเปก พิมพ์ 'ให้ช่างแนะนำ'):"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
-
-    elif state == "INSTALL_DETAIL":
-        user_data[user_id]["detail"] = text
-        sessions[user_id] = "INSTALL_IMAGE"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 มีรูปสถานที่หรือหน้างานไหมครับ?", quick_reply=skip_image_qr()))
-
-    elif state == "INSTALL_IMAGE":
-        data = user_data.pop(user_id)
-        sessions[user_id] = "IDLE"
-        card = create_summary_flex(
-            "งานติดตั้ง", "#00c853",
-            [("ประเภทงาน", data["type"]), ("ข้อมูลลูกค้า", data["detail"]), ("รูปหน้างาน", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอช่างประเมิน/ติดต่อกลับ")],
-            "เจ้าหน้าที่จะรีบติดต่อกลับครับ", "https://github.com/taedate/datacom-image/blob/main/CardChat.png?raw=true"
+            "กำลังเรียกเจ้าหน้าที่ครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -315,4 +346,5 @@ def home():
 
 # ================= RUN =================
 if __name__ == "__main__":
-    app.run(port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

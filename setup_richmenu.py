@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
-IMAGE_PATH = "/Users/nakorn/Documents/GitHub/Datacom_Chatbot/assets/Rich_menu.png"
+IMAGE_PATH = "/Users/nakorn/Documents/GitHub/Datacom_Chatbot/assets/Repair_Da.png"
 
 HEADERS = {
     "Authorization": f"Bearer {ACCESS_TOKEN}",
@@ -16,7 +16,7 @@ rich_menu_payload = {
   "size": {"width": 2500, "height": 1686},
   "selected": True,
   "name": "Rich Menu 1",
-  "chatBarText": "Bulletin",
+  "chatBarText": "เมนู",
   "areas": [
     {"bounds": {"x": 0, "y": 0, "width": 1667, "height": 916}, "action": {"type": "message", "text": "แจ้งซ่อม"}},
     {"bounds": {"x": 1675, "y": 0, "width": 825, "height": 916}, "action": {"type": "message", "text": "ตรวจสอบสถานะงานซ่อม"}},
