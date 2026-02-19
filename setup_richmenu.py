@@ -6,7 +6,7 @@ load_dotenv()
 
 # ================= ใส่ข้อมูลของคุณตรงนี้ =================
 ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")  # ดึง Token จาก .env แบบเดียวกับ Flask
-IMAGE_PATH = "Rich_menu.png"  # ชื่อไฟล์รูปของคุณ
+IMAGE_PATH = "/Users/nakorn/Documents/GitHub/Datacom_Chatbot/assets/Rich_menu.png"  # ชื่อไฟล์รูปของคุณ
 
 HEADERS = {
     "Authorization": f"Bearer {ACCESS_TOKEN}",
