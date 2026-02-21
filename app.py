@@ -295,7 +295,7 @@ def handle_repair(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "บันทึกแจ้งซ่อม", "#ff9800",
             [("อุปกรณ์", data["type"]), ("รายละเอียด", data["detail"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอประเมินราคา")],
-            "รับเรื่องเรียบร้อย แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
+            "รับเรื่องเรียบร้อย แอดมินจะติดต่อกลับครับ", "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/refs/heads/main/PleaseWaitadminreply.png?token=GHSAT0AAAAAADTBJ676KBEVZWKSS3E5NXJU2MZ2CPQ"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -321,7 +321,7 @@ def handle_org(event, text, user_id, state, is_image):
                 ("สถานะ", "รอตรวจสอบสต็อก")
             ],
             "รับเรื่องเรียบร้อย แอดมินจะจัดส่งใบเสนอราคาให้ครับ",
-            "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
+            "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/refs/heads/main/PleaseWaitadminreply.png?token=GHSAT0AAAAAADTBJ676KBEVZWKSS3E5NXJU2MZ2CPQ"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -338,7 +338,7 @@ def handle_inquiry(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "สอบถามสินค้า", "#9c27b0",
             [("สินค้า", data["product"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอแอดมินตอบ")],
-            "ระบบได้รับข้อความแล้ว กำลังเรียกแอดมินครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
+            "ระบบได้รับข้อความแล้ว กำลังเรียกแอดมินครับ", "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/refs/heads/main/PleaseWaitadminreply.png?token=GHSAT0AAAAAADTBJ676KBEVZWKSS3E5NXJU2MZ2CPQ"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
