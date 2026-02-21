@@ -13,16 +13,74 @@ HEADERS = {
 }
 
 rich_menu_payload = {
-  "size": {"width": 2500, "height": 1686},
+  "size": {
+    "width": 2500,
+    "height": 1686
+  },
   "selected": True,
   "name": "Rich Menu 1",
-  "chatBarText": "เมนู",
+  "chatBarText": "Bulletin",
   "areas": [
-    {"bounds": {"x": 0, "y": 0, "width": 1667, "height": 916}, "action": {"type": "message", "text": "แจ้งซ่อม"}},
-    {"bounds": {"x": 1675, "y": 0, "width": 825, "height": 916}, "action": {"type": "message", "text": "ตรวจสอบสถานะงานซ่อม"}},
-    {"bounds": {"x": 0, "y": 932, "width": 821, "height": 754}, "action": {"type": "message", "text": "สั่งซื้อหน่วยงาน"}},
-    {"bounds": {"x": 837, "y": 932, "width": 830, "height": 754}, "action": {"type": "message", "text": "สอบถามสินค้า"}},
-    {"bounds": {"x": 1679, "y": 932, "width": 821, "height": 754}, "action": {"type": "message", "text": "ช่วยเหลือ"}}
+    {
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1667,
+        "height": 916
+      },
+      "action": {
+        "type": "message",
+        "text": "แจ้งซ่อม"
+      }
+    },
+    {
+      "bounds": {
+        "x": 1675,
+        "y": 0,
+        "width": 825,
+        "height": 916
+      },
+      "action": {
+        "type": "uri",
+        "uri": "https://datacom-service.com/track"
+      }
+    },
+    {
+      "bounds": {
+        "x": 0,
+        "y": 932,
+        "width": 821,
+        "height": 754
+      },
+      "action": {
+        "type": "message",
+        "text": "สั่งซื้อหน่วยงาน"
+      }
+    },
+    {
+      "bounds": {
+        "x": 837,
+        "y": 932,
+        "width": 830,
+        "height": 754
+      },
+      "action": {
+        "type": "message",
+        "text": "สอบถามสินค้า"
+      }
+    },
+    {
+      "bounds": {
+        "x": 1679,
+        "y": 932,
+        "width": 821,
+        "height": 754
+      },
+      "action": {
+        "type": "message",
+        "text": "งานติดตั้ง"
+      }
+    }
   ]
 }
 

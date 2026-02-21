@@ -1,7 +1,7 @@
 import os
-import io  # <-- เพิ่มอันนี้
+import io
 from dotenv import load_dotenv
-from flask import Flask, request, abort, send_file  # <-- เพิ่ม send_file
+from flask import Flask, request, abort, send_file
 from PIL import Image
 
 from linebot import LineBotApi, WebhookHandler
@@ -66,7 +66,7 @@ def create_summary_flex(title, color, items, footer_text, image_url=None):
 
 def create_location_card():
     return FlexSendMessage(
-        alt_text="ที่ตั้งร้าน",
+        alt_text="ที่ตั้งร้าน Datacom Service",
         contents=BubbleContainer(
             hero=ImageComponent(
                 url="https://github.com/taedate/datacom-image/blob/main/Datacom.jpg?raw=true",
@@ -109,7 +109,6 @@ def cancel_qr():
 
 # ================= IMAGEMAP =================
 def create_help_imagemap():
-    # <-- แก้ URL ให้ตรงกับ @app.route ด้านล่าง (ตัด /static ออก)
     base_url = "https://datacom-chatbot.onrender.com/imagemap/help" 
     
     return ImagemapSendMessage(
@@ -188,7 +187,7 @@ def handle_message(event):
     if text == "ยกเลิก":
         sessions[user_id] = "IDLE"
         user_data.pop(user_id, None)
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกรายการเรียบร้อยแล้วครับ"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="❌ ยกเลิกรายการเรียบร้อยแล้วครับ หากต้องการสอบถามเพิ่มเติมเลือกเมนูด้านล่างได้เลยนะครับ"))
         return
 
     if state == "IDLE":
@@ -214,7 +213,7 @@ def handle_idle(event, text, user_id):
         sessions[user_id] = "CHECK_STATUS"
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="🔍 รบกวนพิมพ์ 'เบอร์โทรศัพท์' หรือ 'รหัสงานซ่อม' เพื่อตรวจสอบสถานะครับ", quick_reply=cancel_qr())
+            TextSendMessage(text="🔍 สามารถตรวจสอบสถานะได้ง่ายๆ เลยครับ รบกวนพิมพ์ 'เบอร์โทรศัพท์' หรือ 'รหัสงานซ่อม' ส่งมาได้เลยครับ", quick_reply=cancel_qr())
         )
 
     elif text == "แจ้งซ่อม":
@@ -225,28 +224,29 @@ def handle_idle(event, text, user_id):
             QuickReplyButton(action=MessageAction(label="⌨️ อื่นๆ", text="อุปกรณ์อื่น")),
             QuickReplyButton(action=MessageAction(label="❌ ยกเลิก", text="ยกเลิก"))
         ])
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="ต้องการซ่อมอะไรครับ?", quick_reply=qr))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="🛠️ คุณลูกค้าต้องการแจ้งซ่อมอุปกรณ์ประเภทไหนครับ?", quick_reply=qr))
 
     elif text == "สั่งซื้อหน่วยงาน":
         sessions[user_id] = "ORG_DETAIL"
         prompt_text = (
-            "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\n"
-            "ชื่อหน่วยงาน:\n"
-            "รายการสินค้าที่ต้องการพร้อมจำนวน:"
+            "🏢 สำหรับลูกค้าองค์กร/หน่วยงาน รบกวนแจ้งรายละเอียดเบื้องต้นตามนี้นะครับ\n\n"
+            "- ชื่อหน่วยงาน:\n"
+            "- รายการสินค้าและจำนวนที่ต้องการ:\n\n"
+            "(หลังจากได้รับข้อมูล แอดมินจะรีบตรวจสอบและจัดทำใบเสนอราคาให้ครับ)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
 
     elif text == "สอบถามสินค้า":
         sessions[user_id] = "INQUIRY_PRODUCT"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📦 สอบถามสินค้าตัวไหนครับ?", quick_reply=cancel_qr()))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📦 สนใจสอบถามสินค้าตัวไหน หรือกำลังตามหาอุปกรณ์ชิ้นไหนอยู่ แจ้งแอดมินได้เลยครับ", quick_reply=cancel_qr()))
 
     # --- ดักจับข้อความที่มาจาก Imagemap ---
     elif text == "เวลาเปิดปิด":
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⏰ ร้านเปิดให้บริการ จันทร์-เสาร์ เวลา 08:30 - 18:00 น. (หยุดวันอาทิตย์)"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⏰ ร้านเปิดให้บริการ จันทร์-เสาร์ เวลา 08:30 - 18:00 น. (หยุดวันอาทิตย์) ยินดีต้อนรับเสมอนะครับ"))
     elif text == "ติดต่อด่วนโทร":
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📞 โทรติดต่อด่วน: 098-794-6235, 06-1994-1928\n 📞 โทรติดต่อเบอร์ร้าน: 056-223-547"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📞 โทรติดต่อด่วน: 098-794-6235, 06-1994-1928\n📞 โทรติดต่อเบอร์ร้าน: 056-223-547"))
     elif text == "คำถามอื่นๆ":
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="พิมพ์คำถามทิ้งไว้ได้เลยครับ แอดมินจะรีบเข้ามาตอบให้เร็วที่สุดครับ"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="💬 คุณลูกค้าสามารถพิมพ์คำถามหรือข้อสงสัยทิ้งไว้ได้เลยนะครับ แอดมินจะรีบเข้ามาตอบกลับให้เร็วที่สุดครับ ขอบคุณครับ 🙏"))
 
     else:
         qr = QuickReply(items=[
@@ -256,9 +256,10 @@ def handle_idle(event, text, user_id):
             QuickReplyButton(action=MessageAction(label="ℹ️ ช่วยเหลือ", text="ช่วยเหลือ")),
             QuickReplyButton(action=MessageAction(label="📍 ติดต่อเรา", text="ติดต่อเรา"))
         ])
+        greeting_text = "👋 สวัสดีครับ Datacom Service ยินดีให้บริการครับ 😊\nคุณลูกค้าต้องการให้เราดูแลเรื่องไหน สามารถเลือกเมนูด้านล่างได้เลยนะครับ 👇"
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="👋 สวัสดีครับ ยินดีให้บริการ เลือกเมนูด้านล่างได้เลยครับ", quick_reply=qr)
+            TextSendMessage(text=greeting_text, quick_reply=qr)
         )
 
 # ---------- CHECK STATUS ----------
@@ -266,7 +267,7 @@ def handle_check_status(event, text, user_id):
     sessions[user_id] = "IDLE"
     line_bot_api.reply_message(
         event.reply_token,
-        TextSendMessage(text=f"กำลังตรวจสอบข้อมูลของ: {text}\n(แอดมินจะรีบแจ้งความคืบหน้าให้ทราบครับ)")
+        TextSendMessage(text=f"กำลังตรวจสอบข้อมูลของ: {text}\n(แอดมินจะรีบแจ้งความคืบหน้าให้ทราบโดยเร็วนะครับ)")
     )
 
 # ---------- REPAIR ----------
@@ -275,16 +276,18 @@ def handle_repair(event, text, user_id, state, is_image):
         user_data[user_id] = {"type": text}
         sessions[user_id] = "REPAIR_DETAIL"
         prompt_text = (
-            "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\nอุปกรณ์ที่ต้องการซ่อม:\nยี่ห้อ:\nรุ่น:\nอาการ/รายละเอียด:"
-            if text == "อุปกรณ์อื่น" else
-            "รบกวนลูกค้ากรอกข้อมูลต่อไปนี้ครับ\nยี่ห้อ:\nรุ่น:\nอาการ/รายละเอียด:"
+            "📝 รบกวนแจ้งรายละเอียดตามนี้ เพื่อให้ช่างประเมินได้แม่นยำขึ้นนะครับ\n"
+            "- ยี่ห้อ:\n"
+            "- รุ่น:\n"
+            "- อาการที่พบ:\n"
+            "(สามารถพิมพ์รวมกันแล้วส่งมาในข้อความเดียวได้เลยครับ)"
         )
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=prompt_text, quick_reply=cancel_qr()))
 
     elif state == "REPAIR_DETAIL":
         user_data[user_id]["detail"] = text
         sessions[user_id] = "REPAIR_IMAGE"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 มีรูปไหมครับ?", quick_reply=skip_image_qr()))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 หากมีรูปภาพอุปกรณ์หรืออาการเสีย สามารถส่งมาให้ดูได้เลยนะครับ\n(ถ้าไม่มี สามารถกด 'ข้าม' ที่เมนูด้านล่างได้เลยครับ)", quick_reply=skip_image_qr()))
 
     elif state == "REPAIR_IMAGE":
         data = user_data.pop(user_id)
@@ -292,7 +295,7 @@ def handle_repair(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "บันทึกแจ้งซ่อม", "#ff9800",
             [("อุปกรณ์", data["type"]), ("รายละเอียด", data["detail"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอประเมินราคา")],
-            "แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
+            "รับเรื่องเรียบร้อย แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -303,7 +306,7 @@ def handle_org(event, text, user_id, state, is_image):
         sessions[user_id] = "ORG_IMAGE"
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="📸 มีรูปไหมครับ?", quick_reply=skip_image_qr())
+            TextSendMessage(text="📸 หากมีรูปภาพตัวอย่างสินค้า สามารถส่งมาได้เลยนะครับ\n(ถ้าไม่มี สามารถกด 'ข้าม' ที่เมนูด้านล่างได้เลยครับ)", quick_reply=skip_image_qr())
         )
 
     elif state == "ORG_IMAGE":
@@ -317,7 +320,7 @@ def handle_org(event, text, user_id, state, is_image):
                 ("รูปภาพ", "มี" if is_image else "ไม่มี"),
                 ("สถานะ", "รอตรวจสอบสต็อก")
             ],
-            "แอดมินจะส่งใบเสนอราคาให้ครับ",
+            "รับเรื่องเรียบร้อย แอดมินจะจัดส่งใบเสนอราคาให้ครับ",
             "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
@@ -327,7 +330,7 @@ def handle_inquiry(event, text, user_id, state, is_image):
     if state == "INQUIRY_PRODUCT":
         user_data[user_id] = {"product": text}
         sessions[user_id] = "INQUIRY_IMAGE"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 มีรูปสินค้าไหมครับ?", quick_reply=skip_image_qr()))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📸 มีรูปภาพสินค้าตัวอย่างไหมครับ?\n(ถ้าไม่มี สามารถกด 'ข้าม' ที่เมนูด้านล่างได้เลยครับ)", quick_reply=skip_image_qr()))
 
     elif state == "INQUIRY_IMAGE":
         data = user_data.pop(user_id)
@@ -335,7 +338,7 @@ def handle_inquiry(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "สอบถามสินค้า", "#9c27b0",
             [("สินค้า", data["product"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอแอดมินตอบ")],
-            "กำลังเรียกเจ้าหน้าที่ครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
+            "ระบบได้รับข้อความแล้ว กำลังเรียกแอดมินครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
