@@ -32,17 +32,21 @@ user_data = {}
 # ================= FLEX =================
 def create_closed_sunday_flex():
     bubble = BubbleContainer(
+        hero=ImageComponent(
+            url="https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/refs/heads/main/Weekend.png",
+            size='full',
+            aspect_ratio='16:9', # ปรับสัดส่วนรูปภาพให้เป็นแนวนอน
+            aspect_mode='cover'
+        ),
         body=BoxComponent(
             layout='vertical',
             paddingAll='xl',
             contents=[
-                TextComponent(text="ร้านปิดให้บริการ 🛑", weight='bold', size='xl', color='#e53935'),
-                SeparatorComponent(margin='md'),
                 BoxComponent(
-                    layout='vertical', margin='md', spacing='sm',
+                    layout='vertical', spacing='sm',
                     contents=[
-                        TextComponent(text="วันนี้ (วันอาทิตย์) ร้าน Datacom Service ปิดทำการครับ", wrap=True, size='md'),
-                        TextComponent(text="⏰ เปิดทำการปกติ: จันทร์ - เสาร์ (08:30 - 18:30 น.)", wrap=True, size='sm', color='#666666'),
+                        TextComponent(text="วันนี้ (วันอาทิตย์) ปิดทำการครับ", wrap=True, weight='bold', size='md', color='#e53935'),
+                        TextComponent(text="⏰ เปิดทำการปกติ: จันทร์ - เสาร์ (08:30 - 18:00 น.)", wrap=True, size='sm', color='#666666'),
                         TextComponent(text="คุณลูกค้าสามารถใช้งานเมนู 'ช่วยเหลือ' ด้านล่างได้ปกตินะครับ หรือฝากข้อความไว้ แอดมินจะรีบดูแลให้ในวันพรุ่งนี้ครับ 🙏", wrap=True, size='sm', color='#666666')
                     ]
                 )
