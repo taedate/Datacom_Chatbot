@@ -1,5 +1,7 @@
 import os
 import io
+from datetime import datetime
+import pytz
 from dotenv import load_dotenv
 from flask import Flask, request, abort, send_file
 from PIL import Image
@@ -28,6 +30,27 @@ sessions = {}
 user_data = {}
 
 # ================= FLEX =================
+def create_closed_sunday_flex():
+    bubble = BubbleContainer(
+        body=BoxComponent(
+            layout='vertical',
+            paddingAll='xl',
+            contents=[
+                TextComponent(text="ร้านปิดให้บริการ 🛑", weight='bold', size='xl', color='#e53935'),
+                SeparatorComponent(margin='md'),
+                BoxComponent(
+                    layout='vertical', margin='md', spacing='sm',
+                    contents=[
+                        TextComponent(text="วันนี้ (วันอาทิตย์) ร้าน Datacom Service ปิดทำการครับ", wrap=True, size='md'),
+                        TextComponent(text="⏰ เปิดทำการปกติ: จันทร์ - เสาร์ (08:30 - 18:30 น.)", wrap=True, size='sm', color='#666666'),
+                        TextComponent(text="คุณลูกค้าสามารถใช้งานเมนู 'ช่วยเหลือ' ด้านล่างได้ปกตินะครับ หรือฝากข้อความไว้ แอดมินจะรีบดูแลให้ในวันพรุ่งนี้ครับ 🙏", wrap=True, size='sm', color='#666666')
+                    ]
+                )
+            ]
+        )
+    )
+    return FlexSendMessage(alt_text="ร้านปิดทำการวันอาทิตย์", contents=bubble)
+
 def create_summary_flex(title, color, items, footer_text, image_url=None):
     body_contents = [
         TextComponent(text=title, weight='bold', size='lg', wrap=True),
@@ -183,6 +206,26 @@ def handle_message(event):
 
     is_image = isinstance(event.message, ImageMessage)
     text = "__IMAGE__" if is_image else event.message.text.strip()
+
+    # --- เช็ควันอาทิตย์ ---
+    tz = pytz.timezone('Asia/Bangkok')
+    now = datetime.now(tz)
+    is_sunday = now.weekday() == 6  # 0=วันจันทร์, 6=วันอาทิตย์
+
+    # กำหนดกลุ่มคำสั่งที่ยอมให้ทำงานได้ในวันอาทิตย์
+    allowed_on_sunday = [
+        "ช่วยเหลือ", "เวลาเปิดปิด", "ติดต่อด่วนโทร", "คำถามอื่นๆ", "แผนที่", "ติดต่อเรา", "ยกเลิก"
+    ]
+
+    # ถ้าเป็นวันอาทิตย์ และไม่ได้กดเมนูที่อนุญาตไว้
+    if is_sunday and text not in allowed_on_sunday:
+        # เคลียร์สถานะการทำรายการ
+        sessions.pop(user_id, None)
+        user_data.pop(user_id, None)
+        # ส่งการ์ดแจ้งร้านปิด
+        line_bot_api.reply_message(event.reply_token, create_closed_sunday_flex())
+        return
+    # ----------------------------------------
 
     if text == "ยกเลิก":
         sessions[user_id] = "IDLE"
