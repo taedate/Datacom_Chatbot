@@ -104,7 +104,7 @@ def create_location_card():
                         layout='vertical', margin='md',
                         contents=[
                             TextComponent(text="📍 123 ถ.สุขุมวิท กรุงเทพฯ", wrap=True),
-                            TextComponent(text="⏰ 09:00 - 18:00 น. (จ-ส)", wrap=True)
+                            TextComponent(text="⏰ 09:00 - 18:30 น. (จ-ส)", wrap=True)
                         ]
                     )
                 ]
@@ -285,7 +285,7 @@ def handle_idle(event, text, user_id):
 
     # --- ดักจับข้อความที่มาจาก Imagemap ---
     elif text == "เวลาเปิดปิด":
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⏰ ร้านเปิดให้บริการ จันทร์-เสาร์ เวลา 08:30 - 18:00 น. (หยุดวันอาทิตย์) ยินดีต้อนรับเสมอนะครับ"))
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text="⏰ ร้านเปิดให้บริการ จันทร์-เสาร์ เวลา 08:30 - 18:30 น. (หยุดวันอาทิตย์) ยินดีต้อนรับเสมอนะครับ"))
     elif text == "ติดต่อด่วนโทร":
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="📞 โทรติดต่อด่วน: 098-794-6235, 06-1994-1928\n📞 โทรติดต่อเบอร์ร้าน: 056-223-547"))
     elif text == "คำถามอื่นๆ":
@@ -338,7 +338,7 @@ def handle_repair(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "บันทึกแจ้งซ่อม", "#ff9800",
             [("อุปกรณ์", data["type"]), ("รายละเอียด", data["detail"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอประเมินราคา")],
-            "รับเรื่องเรียบร้อย แอดมินจะติดต่อกลับครับ", "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/main/PleaseWaitadminreply.png"
+            "รับเรื่องเรียบร้อย แอดมินจะติดต่อกลับครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply2.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -364,7 +364,7 @@ def handle_org(event, text, user_id, state, is_image):
                 ("สถานะ", "รอตรวจสอบสต็อก")
             ],
             "รับเรื่องเรียบร้อย แอดมินจะจัดส่งใบเสนอราคาให้ครับ",
-            "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/main/PleaseWaitadminreply.png"
+            "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply2.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
@@ -381,7 +381,7 @@ def handle_inquiry(event, text, user_id, state, is_image):
         card = create_summary_flex(
             "สอบถามสินค้า", "#9c27b0",
             [("สินค้า", data["product"]), ("รูปภาพ", "มี" if is_image else "ไม่มี"), ("สถานะ", "รอแอดมินตอบ")],
-            "ระบบได้รับข้อความแล้ว กำลังเรียกแอดมินครับ", "https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/main/PleaseWaitadminreply.png"
+            "ระบบได้รับข้อความแล้ว กำลังเรียกแอดมินครับ", "https://github.com/taedate/DATACOM-ImageV2/blob/main/PleaseWaitadminreply2.png?raw=true"
         )
         line_bot_api.reply_message(event.reply_token, card)
 
