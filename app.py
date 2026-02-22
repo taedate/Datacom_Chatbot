@@ -33,7 +33,7 @@ user_data = {}
 def create_closed_sunday_flex():
     bubble = BubbleContainer(
         hero=ImageComponent(
-            url="https://raw.githubusercontent.com/taedate/DATACOM-ImageV2/refs/heads/main/Weekend.png",
+            url="https://github.com/taedate/DATACOM-ImageV2/blob/main/Weekend.png?raw=true",
             size='full',
             aspect_ratio='16:9', # ปรับสัดส่วนรูปภาพให้เป็นแนวนอน
             aspect_mode='cover'
